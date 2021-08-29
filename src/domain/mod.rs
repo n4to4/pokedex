@@ -1,4 +1,8 @@
 mod create_pokemon;
+mod entities;
+
+use entities::*;
+use std::convert::TryFrom;
 
 struct Request {
     number: u16,
@@ -13,10 +17,13 @@ enum Response {
 }
 
 fn execute(req: Request) -> Response {
-    if req.name.is_empty() {
-        Response::BadRequest
-    } else {
-        Response::Ok(req.number)
+    match (
+        PokemonNumber::try_from(req.number),
+        PokemonName::try_from(req.name),
+        PokemonTypes::try_from(req.types),
+    ) {
+        (Ok(number), Ok(_), Ok(_)) => Response::Ok(number.into()),
+        _ => Response::BadRequest,
     }
 }
 
