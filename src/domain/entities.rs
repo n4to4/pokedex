@@ -1,10 +1,34 @@
 use std::convert::TryFrom;
 
+pub struct Pokemon {
+    pub number: PokemonNumber,
+    name: PokemonName,
+    types: PokemonTypes,
+}
+
+impl Pokemon {
+    pub fn new(number: PokemonNumber, name: PokemonName, types: PokemonTypes) -> Self {
+        Self {
+            number,
+            name,
+            types,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PokemonNumber(u16);
+
+#[derive(Debug, Clone)]
 pub struct PokemonName(String);
+
+#[derive(Debug, Clone)]
 pub struct PokemonTypes(Vec<PokemonType>);
+
+#[derive(Debug, Clone, Copy)]
 enum PokemonType {
     Electric,
+    Fire,
 }
 
 impl TryFrom<u16> for PokemonNumber {
@@ -60,6 +84,7 @@ impl TryFrom<String> for PokemonType {
     fn try_from(t: String) -> Result<Self, Self::Error> {
         match t.as_str() {
             "Electric" => Ok(Self::Electric),
+            "Fire" => Ok(Self::Fire),
             _ => Err(()),
         }
     }

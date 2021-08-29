@@ -1,6 +1,8 @@
 mod create_pokemon;
-mod entities;
+pub(crate) mod entities;
 
+use crate::repositories::pokemon::InMemoryRepository;
+use crate::repositories::pokemon::{Insert, Repository};
 use entities::*;
 use std::convert::TryFrom;
 
@@ -14,15 +16,19 @@ struct Request {
 enum Response {
     Ok(u16),
     BadRequest,
+    Conflict,
 }
 
-fn execute(req: Request) -> Response {
+fn execute(repo: &mut dyn Repository, req: Request) -> Response {
     match (
         PokemonNumber::try_from(req.number),
         PokemonName::try_from(req.name),
         PokemonTypes::try_from(req.types),
     ) {
-        (Ok(number), Ok(_), Ok(_)) => Response::Ok(number.into()),
+        (Ok(number), Ok(name), Ok(types)) => match repo.insert(number, name, types) {
+            Insert::Ok(number) => Response::Ok(number.into()),
+            Insert::Conflict => Response::Conflict,
+        },
         _ => Response::BadRequest,
     }
 }
@@ -40,7 +46,9 @@ mod tests {
             types: vec![String::from("Electric")],
         };
 
-        let res = execute(req);
+        let mut repo = InMemoryRepository::new();
+        let res = execute(&mut repo, req);
+
         assert_eq!(res, Response::Ok(number));
     }
 
@@ -52,7 +60,28 @@ mod tests {
             types: vec![String::from("Electric")],
         };
 
-        let res = execute(req);
+        let mut repo = InMemoryRepository::new();
+
+        let res = execute(&mut repo, req);
         assert_eq!(res, Response::BadRequest);
+    }
+
+    #[test]
+    fn it_should_return_a_conflict_error_when_pokemon_number_already_exists() {
+        let number = PokemonNumber::try_from(25).unwrap();
+        let name = PokemonName::try_from(String::from("Pikachu")).unwrap();
+        let types = PokemonTypes::try_from(vec![String::from("Electric")]).unwrap();
+
+        let mut repo = InMemoryRepository::new();
+        repo.insert(number, name, types);
+
+        let req = Request {
+            number: number.into(),
+            name: String::from("Charmander"),
+            types: vec![String::from("Fire")],
+        };
+        let res = execute(&mut repo, req);
+
+        assert_eq!(res, Response::Conflict);
     }
 }
