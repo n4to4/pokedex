@@ -20,17 +20,23 @@ enum Response {
     Error,
 }
 
+impl From<Insert> for Response {
+    fn from(i: Insert) -> Self {
+        match i {
+            Insert::Ok(number) => Response::Ok(number.into()),
+            Insert::Conflict => Response::Conflict,
+            Insert::Error => Response::Error,
+        }
+    }
+}
+
 fn execute(repo: &mut dyn Repository, req: Request) -> Response {
     match (
         PokemonNumber::try_from(req.number),
         PokemonName::try_from(req.name),
         PokemonTypes::try_from(req.types),
     ) {
-        (Ok(number), Ok(name), Ok(types)) => match repo.insert(number, name, types) {
-            Insert::Ok(number) => Response::Ok(number.into()),
-            Insert::Conflict => Response::Conflict,
-            Insert::Error => Response::Error,
-        },
+        (Ok(number), Ok(name), Ok(types)) => repo.insert(number, name, types).into(),
         _ => Response::BadRequest,
     }
 }
